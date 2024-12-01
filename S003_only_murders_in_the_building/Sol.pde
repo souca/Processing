@@ -19,16 +19,16 @@ class Sol {
     pg.noFill();
     pg.rect(0,0,2*d,2*d);
     pg.noFill();
-    pg.stroke(iro2);
+    pg.stroke(184,200,255);
     pg.strokeWeight(0.25);
     
-    int _xyz = int(random(8))+4;
+    int _xyz = int(random(12))+4;
     PVector pos = random_point_in_square();
     
     for (int k=0; k<_xyz; k++) {
       float r = map(k,0,_xyz-1,3*d,d);
       pg.circle(pos.x,pos.y,r);
-    }
+    }    
     pg.endDraw();
     
     
@@ -36,11 +36,16 @@ class Sol {
     mask.beginDraw();
     mask.background(0);
     mask.fill(255);
-    mask.circle(d,d,2*d);
+    //mask.circle(d,d,2*d);
+    if (dni%2==0) {
+      mask.arc(d,d,2*d,2*d,0.5*PI,1.5*PI);
+    } else {
+      mask.arc(d,d,2*d,2*d,1.5*PI,2.5*PI);
+    }
     mask.endDraw();
     
-    
     pg.mask(mask);
+   
    
   }
   
@@ -55,13 +60,13 @@ class Sol {
       y = 0;
     } else if (d1==1) {
       x = map(d3,0,1,0,2*d);
-      y = n;
+      y = 2*d;
     } else if (d1==2) {
       y = map(d3,0,1,0,2*d);
       x = 0;
     } else if (d1==3) {
       y = map(d3,0,1,0,2*d);
-      x = n;
+      x = 2*d;
     }
     return new PVector(x,y);
   }
