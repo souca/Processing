@@ -1,5 +1,5 @@
 void setup() {
-  size(700, 700);
+  size(720, 720);
   colorMode(HSB, 365, 100, 100);
 }
 
@@ -35,11 +35,12 @@ void mitri(int x, int y, int t) {
   }
 }
 
+//don't be so smart about it 
 void htri() {
-  mitri( 0, 0, 0);
-  mitri(20, 0, 0);
-  mitri(40, 0, 0);
-  mitri(60, 0, 0);
+  mitri( 0,  0, 0);
+  mitri(20,  0, 0);
+  mitri(40,  0, 0);
+  mitri(60,  0, 0);
   mitri(10, 10, 1);
   mitri(30, 10, 1);
   mitri(50, 10, 1);
@@ -63,30 +64,26 @@ void htri() {
 }
 
 void vtri() {
-  mitri( 0, 0, 2);
+  mitri( 0,  0, 2);
   mitri( 0, 20, 2);
   mitri( 0, 40, 2);
   mitri( 0, 60, 2);
   mitri(10, 10, 2);
   mitri(10, 30, 2);
   mitri(10, 50, 2);
-
   mitri(60, 20, 2);
   mitri(60, 40, 2);
   mitri(70, 10, 2);
   mitri(70, 30, 2);
   mitri(70, 50, 2);
-
   mitri(10, 10, 3);
   mitri(10, 30, 3);
   mitri(10, 50, 3);
   mitri(20, 20, 3);
   mitri(20, 40, 3);
-
   mitri(70, 10, 3);
   mitri(70, 30, 3);
   mitri(70, 50, 3);
-
   mitri(80, 0, 3);
   mitri(80, 20, 3);
   mitri(80, 40, 3);
@@ -109,13 +106,21 @@ void draw() {
   background(330,100,65);
   noFill();
   noStroke();
-  for (int i=0; i<width/80; i++) {
-    for (int j=0; j<height/80; j++) {
-      int _x = i*80+30;
-      int _y = j*80+30;
-      println(_x,_y);
+  pushMatrix();
+  rotate(PI*0.25);
+  for (int i=0; i<13; i++) {
+    for (int j=-7; j<7; j++) {
+      int _x = i*80;
+      int _y = j*80;
       tile(_x, _y);
     }
   }
+  popMatrix();
+  fill(330,100,65);
+  rect(0,0,30,height);
+  rect(width-30,0,30,height);
+  rect(30,0,width-60,30);
+  rect(30,height-30,width-60,30);
+  save("ola.png");
   noLoop();
 }

@@ -1,0 +1,23 @@
+Proyecto auxiliar para el tema de dibujar ojos. 
+El problema principal a atacar era cómo ocultamos la parte del iris que queda detrás de los párpados.
+Sean dos círculos de igual radio que se cortan en dos puntos.
+El segmento de arco de uno de los círculos que queda dentro del otro círculo es una mitad del contorno
+  del ojo.
+Los dos arcos forman la forma lenticular del ojo visible. 
+Los puntos de corte de estos dos círculos los derivé teniendo en cuenta que la forma de la que partimos
+  son las dimensiones del ojo, (x*ratio, x), donde 1>ratio>2.
+Dado este rectángulo, los puntos (-x*ratio/2,0) y (+x*ratio/2,0) con respecto al centro del rectángulo
+  son los puntos de corte, pero para poder dibujar solo los arcos tengo que conocer el radio de los círculos
+  y luego derivar los ángulos tendidos. 
+En este caso, no costó mucho calcularlo, así que ya teníamos la forma del ojo. Para que el iris quedase 
+  por detrás del párpado, lo que hicimos fue beginDraw()...endDraw recorriendo los dos arcos y completando
+  el recorrido por el rectángulo, pintándolo del mismo color que el fondo.
+(De hecho, lo que hicimos fue pintar el fondo en un PGImage, y esta forma del rectángulo del ojo menos el 
+  propio ojo la maskeamos del fondo para pintarla. De esta forma podemos poner fondos con cosas, no solo
+  colores sólidos).
+El problema limitante es que si el iris es grande y/o está muy escorado en el ojo, saldrá fuera de los 
+  límites del rectángulo. La solución de hacer más grande los rectángulos no es satisfactoria si vamos a
+  querer tener la libertad de hacer diseños con muchos ojos unos cerca de los otros. 
+La solución real es quedarse con la intersección de los dos círculos. 
+Queda la pregunta de cómo arreglamos cuando haya tres círculos, que es lo que pasará en los ojos cuando
+  el iris esté centrado en vertical pero muy escorado en horizontal. 
