@@ -1,0 +1,516 @@
+Perfecto — ahora sí estamos en el punto bonito del problema 🙂.
+Vamos a construir el **ojo como SDF (Signed Distance Field)** usando **tres círculos**:
+
+```text
+EyeVisible = CircleA ∩ CircleB ∩ IrisCircle
+```
+
+y hacerlo correctamente en **Processing (P2D + shader)**.
+
+Esto elimina:
+
+* máscaras
+* PGraphics auxiliares
+* polígonos
+* problemas cuando el iris se sale
+* casos especiales geométricos
+
+Todo se vuelve **una sola función matemática**.
+
+---
+
+# 🧠 1. Idea SDF (la clave)
+
+Un SDF devuelve:
+
+```text
+dist < 0  → dentro
+dist = 0  → borde
+dist > 0  → fuera
+```
+
+Para un círculo:
+
+```text
+d(p) = length(p - center) - radius
+```
+
+---
+
+## Intersecciones en SDF
+
+Esto es lo importante:
+
+| Operación    | SDF         |
+| ------------ | ----------- |
+| unión        | `min(a,b)`  |
+| intersección | `max(a,b)`  |
+| resta        | `max(a,-b)` |
+
+Así que:
+
+```text
+A ∩ B ∩ C = max(dA, dB, dC)
+```
+
+Eso responde directamente a tu pregunta.
+
+---
+
+# 🎯 2. SDF de tres círculos (el ojo completo)
+
+Matemáticamente:
+
+```text
+dEye = max(
+            dCircleA,
+            dCircleB,
+            dIris
+          )
+```
+
+Si `dEye < 0` → pixel visible.
+
+---
+
+# ⚙️ 3. Shader GLSL para Processing
+
+Processing usa GLSL fácilmente.
+
+## archivo: `eye.glsl`
+
+```glsl
+#ifdef GL_ES
+precision mediump float;
+precision mediump int;
+#endif
+
+uniform vec2 resolution;
+uniform vec2 eyeA;
+uniform vec2 eyeB;
+uniform vec2 iris;
+uniform float rEye;
+uniform float rIris;
+
+float sdCircle(vec2 p, vec2 c, float r){
+    return length(p - c) - r;
+}
+
+void main(){
+
+    vec2 p = gl_FragCoord.xy;
+
+    float dA = sdCircle(p, eyeA, rEye);
+    float dB = sdCircle(p, eyeB, rEye);
+    float dI = sdCircle(p, iris, rIris);
+
+    // INTERSECCIÓN DE LOS TRES
+    float d = max(max(dA, dB), dI);
+
+    if(d < 0.0)
+        gl_FragColor = vec4(1.0); // visible
+    else
+        discard;
+}
+```
+
+---
+
+# 🧩 4. Código Processing
+
+```java
+PShader eye;
+
+void setup(){
+  size(700,700,P2D);
+  eye = loadShader("eye.glsl");
+
+  eye.set("resolution",(float)width,(float)height);
+}
+
+void draw(){
+
+  background(30);
+
+  eye.set("eyeA", width/2-120.0, height/2.0);
+  eye.set("eyeB", width/2+120.0, height/2.0);
+  eye.set("iris", (float)mouseX, (float)mouseY);
+
+  eye.set("rEye",180.0);
+  eye.set("rIris",80.0);
+
+  shader(eye);
+  rect(0,0,width,height);
+}
+```
+
+---
+
+# ✅ Qué acabas de ganar
+
+Ahora:
+
+* el iris puede moverse libremente
+* nunca se sale del ojo
+* no hay clipping manual
+* no hay máscaras
+* coste O(1) por pixel
+* escalable a cientos de ojos
+
+---
+
+# ✨ 5. Bonus: bordes suaves (gratis)
+
+Una ventaja brutal del SDF:
+
+```glsl
+float alpha = smoothstep(2.0, 0.0, d);
+gl_FragColor = vec4(vec3(1.0), alpha);
+```
+
+Obtienes anti-alias perfecto sin esfuerzo.
+
+---
+
+# 🔥 6. Insight geométrico profundo
+
+Tu problema original era:
+
+> “¿qué pasa cuando aparecen más círculos?”
+
+En SDF la respuesta general es:
+
+```text
+intersección de N formas = max(d1, d2, ... dN)
+```
+
+No cambia el algoritmo.
+
+Añades formas → añades `max()`.
+
+---
+
+# 🧠 Regla mental final
+
+Si una forma es:
+
+```text
+"lo que está dentro de todo esto"
+```
+
+→ usa `max()`.
+
+Si es:
+
+```text
+"dentro de cualquiera"
+```
+
+→ usa `min()`.
+
+---
+
+Si quieres, en el siguiente paso puedo enseñarte algo que probablemente te vuele un poco la cabeza: cómo convertir tu ojo completo (párpados incluidos) en **una única función SDF analítica sin círculos auxiliares**, usando directamente la ecuación de la lente vesica piscis. Es lo que usan muchos shaders de arte generativo actuales.
+
+
+***
+Perfecto — ahora entramos en **Processing moderno de verdad** 🙂.
+Voy a responder en dos partes claras:
+
+1️⃣ **mini-tutorial realista de PShader + GLSL (lo necesario, no teoría inútil)**
+2️⃣ **cómo estructurar tu ojo por capas usando SDF** (fondo, párpado, iris, pupila, reflejos, etc.)
+
+La idea clave: **el shader no sustituye Processing**, sino que se convierte en *tu sistema de clipping geométrico perfecto*.
+
+---
+
+# 1️⃣ Tutorial práctico de PShader + GLSL en Processing
+
+En Processing un shader es simplemente:
+
+```text
+Processing (Java) → pasa parámetros
+GLSL (GPU) → decide color de cada pixel
+```
+
+---
+
+## Tipos de shader
+
+Processing usa dos:
+
+| Tipo            | Qué hace                                    |
+| --------------- | ------------------------------------------- |
+| vertex shader   | mueve geometría (casi nunca necesario aquí) |
+| fragment shader | pinta píxeles ✅                             |
+
+Nos interesa **fragment shader**.
+
+---
+
+## Estructura mínima
+
+### sketch.pde
+
+```java
+PShader sh;
+
+void setup() {
+  size(700,700,P2D);
+  sh = loadShader("eye.glsl");
+}
+
+void draw() {
+  shader(sh);
+  rect(0,0,width,height);
+}
+```
+
+👉 el rect activa el shader para toda la pantalla.
+
+---
+
+### eye.glsl
+
+```glsl
+#ifdef GL_ES
+precision mediump float;
+precision mediump int;
+#endif
+
+void main() {
+  gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+}
+```
+
+Pantalla roja = funciona.
+
+---
+
+## Variables importantes
+
+### uniforms (desde Processing)
+
+```glsl
+uniform vec2 resolution;
+uniform float time;
+```
+
+En Processing:
+
+```java
+sh.set("resolution",(float)width,(float)height);
+sh.set("time",millis()/1000.0);
+```
+
+---
+
+## Coordenadas del pixel
+
+```glsl
+vec2 p = gl_FragCoord.xy;
+```
+
+posición del pixel actual.
+
+Normalizado (MUY habitual):
+
+```glsl
+vec2 uv = p / resolution;
+```
+
+---
+
+# 2️⃣ Arquitectura correcta del ojo (lo importante)
+
+Ahora hacemos lo que pedías:
+
+> dibujar como en Processing tradicional pero usando SDF para recortes perfectos.
+
+La idea:
+
+```text
+shader decide:
+qué parte pertenece a:
+  fondo
+  esclera
+  iris
+  pupila
+  reflejos
+```
+
+NO usamos máscaras.
+
+Solo lógica geométrica.
+
+---
+
+# 🧠 Modelo por capas
+
+Pensar así:
+
+```text
+color = fondo
+
+si dentro del ojo:
+    color = blanco ojo
+
+si dentro iris:
+    color = iris
+
+si dentro pupila:
+    color = negro
+
+añadir reflejos
+```
+
+Todo en un shader.
+
+---
+
+# 3️⃣ Shader completo del ojo (estructura profesional)
+
+## eye.glsl
+
+```glsl
+#ifdef GL_ES
+precision mediump float;
+precision mediump int;
+#endif
+
+uniform vec2 resolution;
+uniform vec2 eyeA;
+uniform vec2 eyeB;
+uniform vec2 irisC;
+
+uniform float rEye;
+uniform float rIris;
+uniform float rPupil;
+
+float sdCircle(vec2 p, vec2 c, float r){
+    return length(p-c)-r;
+}
+
+void main(){
+
+    vec2 p = gl_FragCoord.xy;
+
+    // --- distancias ---
+    float dA = sdCircle(p, eyeA, rEye);
+    float dB = sdCircle(p, eyeB, rEye);
+    float dEye = max(dA,dB);          // párpados
+
+    float dIris = sdCircle(p, irisC, rIris);
+    float dPupil = sdCircle(p, irisC, rPupil);
+
+    // --- colores base ---
+    vec3 col = vec3(0.95,0.95,0.9);   // fondo
+
+    // dentro del ojo
+    if(dEye < 0.0)
+        col = vec3(1.0);
+
+    // iris (solo dentro del ojo)
+    if(max(dEye,dIris) < 0.0)
+        col = vec3(0.2,0.6,0.9);
+
+    // pupila
+    if(max(dEye,dPupil) < 0.0)
+        col = vec3(0.0);
+
+    // reflejo simple
+    float highlight =
+        smoothstep(20.0,0.0,
+            length(p-(irisC+vec2(-20.0,-20.0))));
+
+    col += highlight*0.8;
+
+    gl_FragColor = vec4(col,1.0);
+}
+```
+
+---
+
+## Processing
+
+```java
+PShader eye;
+
+void setup(){
+  size(700,700,P2D);
+  eye = loadShader("eye.glsl");
+}
+
+void draw(){
+
+  background(240);
+
+  eye.set("resolution",(float)width,(float)height);
+
+  eye.set("eyeA",width/2-120.0,height/2.0);
+  eye.set("eyeB",width/2+120.0,height/2.0);
+
+  eye.set("irisC",(float)mouseX,(float)mouseY);
+
+  eye.set("rEye",180.0);
+  eye.set("rIris",80.0);
+  eye.set("rPupil",30.0);
+
+  shader(eye);
+  rect(0,0,width,height);
+}
+```
+
+---
+
+# ✅ Qué obtienes ahora
+
+* iris nunca se sale
+* párpado geométricamente perfecto
+* reflejos fáciles
+* capas limpias
+* sin máscaras ni PGraphics
+* cientos de ojos posibles
+
+---
+
+# 4️⃣ Cómo pensar ahora (muy importante)
+
+Antes pensabas:
+
+```text
+dibujar → tapar → recortar
+```
+
+Ahora:
+
+```text
+definir regiones matemáticas
+→ asignar color según pertenencia
+```
+
+Es el salto mental clave hacia shaders.
+
+---
+
+# 5️⃣ Extensiones naturales (lo siguiente que harías)
+
+Muy fáciles ahora:
+
+✅ borde suave del párpado
+
+```glsl
+float edge = smoothstep(2.0,0.0,abs(dEye));
+```
+
+✅ textura procedural del iris
+✅ animación orgánica
+✅ sombreado volumétrico
+✅ miles de ojos sin coste CPU
+
+---
+
+Si quieres, el siguiente paso natural (y MUY potente) sería:
+
+👉 cómo convertir tu clase `Ollo` entera en **instanced rendering**, dibujando cientos de ojos con UN solo shader draw call — que es exactamente cómo trabajan los sketches generativos grandes hoy.
+
