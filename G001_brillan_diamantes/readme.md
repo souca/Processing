@@ -5,7 +5,7 @@ ii) facer un gif.
 O método que empregabas antes, a librería importada GifMaker ou algo así, quedou deprecada. O meta agora é exportar n frames en png e por fóra empregar ffmpeg para facer o gif. 
 
 <p align="center">
-<img src="https://github.com/souca/Processing/raw/main/G003_brillan_diamantes/G001_brillan_diamantes.gif"   width="400" />
+<img src="https://github.com/souca/Processing/raw/main/G001_brillan_diamantes/G001_brillan_diamantes.gif"   width="400" />
 </p>
 
 ```java
