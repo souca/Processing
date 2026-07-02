@@ -6,5 +6,5 @@ mosca que recorre o perímetro.
 Aquí fixemos a proba. 
 
 <p align="center">
-<img src="https://github.com/souca/Processing/raw/main/G002_mosca_en_interseccion_circular/G002_mosca_en_interseccion_circular.pde"   width="400" />
+<img src="https://github.com/souca/Processing/raw/main/G002_mosca_en_interseccion_circular/G002_mosca_en_interseccion_circular.gif"   width="400" />
 </p>
