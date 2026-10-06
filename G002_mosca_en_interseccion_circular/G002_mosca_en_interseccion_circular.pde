@@ -6,14 +6,17 @@ float y1; // y del 2o circulo
 float tt; // variable temporal (tiempo desde arranque, [ms])
 
 boolean visual_aid; // vista limpia o con ayuda para debuguear
+int FPS;
 
 void setup() {
   size(600, 600);
   background(20, 60, 20); // verde campo
 
+  FPS = 50;
   rr = 120;
   new_coords();
   visual_aid = false;
+  frameRate(FPS);
 }
 
 void new_coords() {
@@ -22,7 +25,7 @@ void new_coords() {
   // C0 en la mitad izquierda, C1 en la derecha.
   boolean fin = true;
   while (fin) {
-    x0 = random(-width*0.5+rr, 0);
+    x0 = random(-width*0.5+rr,0);
     x1 = random(0, width*0.5-rr);
     y0 = random(-height*0.5+rr, height*0.5-rr);
     y1 = random(-height*0.5+rr, height*0.5-rr);
@@ -104,6 +107,8 @@ void draw() {
   fill(255);
 
   float periodo = 2600; //periodo en ms
+  int totalFrames = int(periodo/1000.0*FPS);
+  
   float gamma = atan2(dbeta, dalfa*0.5); // angulo que un punto de interseccion hace
   // con el eje ê1
 
@@ -112,15 +117,23 @@ void draw() {
   if ((tt%periodo) < periodo*0.5) {
     u = constrain((tt%periodo)/(periodo*0.5), 0, 1);
     e = 0.5 - 0.5*cos(u*PI);
+    e = u*u*(3-2*u);
     tgamma = lerp(-gamma, gamma, e);
     circle(rr*cos(tgamma), rr*sin(tgamma), 14);
   } else {
     u = constrain(((tt%periodo)-(periodo*0.5))/(periodo*0.5), 0, 1);
     e = 0.5 - 0.5*cos(u*PI);
+    e = u*u*(3-2*u);
     tgamma = lerp(gamma, -gamma, e);
     circle(dalfa-rr*cos(tgamma), rr*sin(tgamma), 14);
   }
 
-
   popMatrix();
+  
+  //saveFrame("frames/frame-####.png");
+  
+  //if (frameCount >= totalFrames) {
+  //  exit();
+  //}u*u*u*(u*(6*u - 15) + 10)
+  
 }
